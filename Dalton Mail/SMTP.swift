@@ -7,6 +7,8 @@
 
 import Foundation
 import Network
+import CryptoKit
+//import Socket
 
 struct Message {
     
@@ -85,13 +87,13 @@ struct Envelope {
 
 class SMTPConnection: NSObject, StreamDelegate {
     
-    var smtp220Ready = false {
+    private var smtp220Ready = false {
         didSet {
             print("Set smtp220Ready to \(self.smtp220Ready)")
         }
     }
     
-    var smtp250HELO = false {
+    private var smtp250HELO = false {
         didSet {
             print("Set smtp250HELO to \(self.smtp250HELO)")
             readyToSend = self.smtp250HELO && smtp220Ready
@@ -99,17 +101,26 @@ class SMTPConnection: NSObject, StreamDelegate {
     }
     
     //Can attempt to send an email when true
-    var readyToSend = false
+    private var readyToSend = false
     
-    static let SMTP_PORT = 587
+    static var SMTP_PORT = 587//465
     static let BUFF_CAP = 4096
     
-    var inputStream:InputStream?
-    var outputStream:OutputStream?
+    private var inputStream:InputStream?
+    private var outputStream:OutputStream?
     
-    init?(envelope: Envelope, _ errorCompletion: (String?) -> Void) {
+    private var envelope:Envelope
+    private var errorCompletion:(String?) -> Void
+    
+    func testButton() {
+        print(inputStream?.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: Stream.PropertyKey.socketSecurityLevelKey))
+        outputStream?.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: Stream.PropertyKey.socketSecurityLevelKey)
+    }
+    
+    init?(envelope: Envelope, _ errorCompletion: @escaping (String?) -> Void) {
+        self.envelope = envelope
+        self.errorCompletion = errorCompletion
         super.init()
-        
         var readStream: Unmanaged<CFReadStream>?
         var writeStream: Unmanaged<CFWriteStream>?
 
@@ -122,9 +133,12 @@ class SMTPConnection: NSObject, StreamDelegate {
         self.inputStream = readStream?.takeRetainedValue()
         self.outputStream = writeStream?.takeRetainedValue()
         
+//        print(inputStream?.setProperty(StreamSocketSecurityLevel.ssLv2, forKey: Stream.PropertyKey.socketSecurityLevelKey))
+//        outputStream?.setProperty(StreamSocketSecurityLevel.ssLv2, forKey: Stream.PropertyKey.socketSecurityLevelKey)
+        
         inputStream?.delegate = self
         outputStream?.delegate = self
-        
+                
         inputStream?.schedule(in: .current, forMode: .common)
         outputStream?.schedule(in: .current, forMode: .common)
         
@@ -133,18 +147,67 @@ class SMTPConnection: NSObject, StreamDelegate {
         
     }
     
+    func close() {
+        
+    }
+    
+    private var currentlyAttemptingTLS = false
+    private var tlsConnected = false
+    private var authLogin = false
+    private var currentlyAttemptingSend = false
+    private var mailFrom250 = false
+    private var rcptTo250 = false
+    private var data354 = false
+    private var message250 = false
+    
     func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
         switch eventCode {
         case .hasBytesAvailable:
             print("Message received, bytes available, can read...")
             if let ist = inputStream {
                 
+                check: if currentlyAttemptingTLS {
+                    if !tlsConnected {
+                        let reply = readBytes(stream: ist); print("Reply for TLS is: \(String(describing: reply))")
+                        if parseReply(reply ?? "") == 220 {
+                            tlsConnected = true
+//                            ist.setProperty(<#T##property: Any?##Any?#>, forKey: Stream.PropertyKey)
+                            print(ist.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: Stream.PropertyKey.socketSecurityLevelKey))
+                            outputStream?.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: Stream.PropertyKey.socketSecurityLevelKey)
+//                            ist.setProperty(StreamSocketSecurityLevel.ssLv3, forKey: Stream.PropertyKey.socketSecurityLevelKey)
+//                            writeBytesOfCommand(withString: "EHLO " + "127.0.0.1\r\n")
+                            
+                        } else { errorCompletion("Error sending mail!"); close() }
+                        break check
+                    }
+                    if !authLogin {
+                        //let reply = readBytes(stream: ist); print("Reply for new EHLO is: \(String(describing: reply))")
+                        
+//                        writeBytesOfCommand(withString: "AUTH CRAM-MD5")
+                    }
+                }
+                
+                //Execute once message sending has commenced
+                check: if currentlyAttemptingSend {
+                    //1
+                    if !mailFrom250 {
+                        let reply = readBytes(stream: ist); print("Reply for mail from is: \(String(describing: reply))")
+                        if parseReply(reply ?? "") == 250 {
+                            mailFrom250 = true
+                        } else { errorCompletion("Error sending mail!"); close() }
+                        break check
+                    }
+                }
+                
                 //Second to execute
                 if !smtp250HELO && smtp220Ready {
                     let reply = readBytes(stream: ist); print("Reply 2 is: \(String(describing: reply))")
                     if parseReply(reply ?? "") == 250 {
                         self.smtp250HELO = true
-                    }
+                        //Now ready to attempt TLS
+                        self.currentlyAttemptingTLS = true
+                        writeBytesOfCommand(withString: "STARTTLS\r\n")//"MAIL FROM:<\(envelope.sender)>\r\n")
+                    } else { errorCompletion("Error sending mail!"); close() }
                 }
                 
                 //First to execute
@@ -152,8 +215,8 @@ class SMTPConnection: NSObject, StreamDelegate {
                     let reply = readBytes(stream: ist); print("Reply 1 is: \(String(describing: reply))")
                     if parseReply(reply ?? "") == 220 {
                         self.smtp220Ready = true
-                        self.writeBytesOfCommand(withString: "HELO " + "127.0.0.1\r\n")
-                    }
+                        self.writeBytesOfCommand(withString: "EHLO " + "127.0.0.1\r\n")
+                    } else { errorCompletion("Error sending mail!"); close() }
                 }
                 
             } else {
@@ -162,7 +225,7 @@ class SMTPConnection: NSObject, StreamDelegate {
         case .hasSpaceAvailable:
             print("Message received, space available, can write...")
         case .errorOccurred:
-            print("Some error occurred in stream...")
+            print("Some error occurred in stream... \(eventCode)")
         default:
             print("Some other stream event occurred...")
         }
@@ -211,8 +274,13 @@ class SMTPConnection: NSObject, StreamDelegate {
     
     //Get smtp response code from reply
     private func parseReply(_ reply: String) -> Int? {
-        let replySplit = reply.split(" ")
-        return replySplit.isEmpty ? nil : Int(replySplit[0])
+        var rep = reply
+        if reply.count >= 3 {
+            let firstThree = Int(String(rep.removeFirst()) + String(rep.removeFirst()) + String(rep.removeFirst()))
+            return firstThree
+        } else { return nil }
+//        let replySplit = reply.split(" ")
+//        return replySplit.isEmpty ? nil : Int(replySplit[0])
     }
     
 }

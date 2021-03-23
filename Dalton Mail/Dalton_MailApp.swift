@@ -12,6 +12,7 @@ struct Dalton_MailApp: App {
     
     init() {
         print("App initialized!")
+        setenv("CFNETWORK_DIAGNOSTICS", "3", 1)
     }
     
     var body: some Scene {

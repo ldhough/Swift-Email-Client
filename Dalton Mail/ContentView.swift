@@ -18,8 +18,8 @@ struct ContentView: View {
                 .padding()
             Button(action: {
                 print("Pressed button")
-                let message = Message(from: "lanniehough@lannies-macbook-pro.local", to: "ldhough@stetson.edu", subject: "A test thing", body: "Please work")
-                let env = Envelope(message: message, server: "http://smtp.live.com")
+                let message = Message(from: "lanniehough@lannies-macbook-pro.local", to: "digitalghost0011@protonmail.com", subject: "A test thing", body: "Please work")
+                let env = Envelope(message: message, server: "https://smtp.gmail.com")
                 if let e = env {
                     let smtpc = SMTPConnection(envelope: e) { _ in
                         
@@ -32,7 +32,7 @@ struct ContentView: View {
                 Text("PRESS ME TO TEST")
             }.padding()
             Button(action: {
-//                smtpC!.tryReadThing()
+//                smtpC?.testButton()
             }) {
                 Text("PRESS ME TO TEST MORE")
             }
