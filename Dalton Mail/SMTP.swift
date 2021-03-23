@@ -66,21 +66,40 @@ struct Envelope {
     
     let host:String
     let mailserverAddr:IPv4Address
+    let mailserverAddrString:String
     
     init?(message: Message, server: String) {
         self.sender = message.from
         self.recipient = message.to
         self.host = server
-        guard let mailserverAddr = IPv4Address(urlToIP(URL(string: server)) ?? "") else {
+        let mailserverAddrStr = urlToIP(URL(string: server)) ?? ""
+        guard let mailserverAddr = IPv4Address(mailserverAddrStr) else {
             print("Error in getting IP from server!")
             return nil
         }
         self.mailserverAddr = mailserverAddr
+        self.mailserverAddrString = mailserverAddrStr
     }
     
 }
 
 class SMTPConnection: NSObject, StreamDelegate {
+    
+    var smtp220Ready = false {
+        didSet {
+            print("Set smtp220Ready to \(self.smtp220Ready)")
+        }
+    }
+    
+    var smtp250HELO = false {
+        didSet {
+            print("Set smtp250HELO to \(self.smtp250HELO)")
+            readyToSend = self.smtp250HELO && smtp220Ready
+        }
+    }
+    
+    //Can attempt to send an email when true
+    var readyToSend = false
     
     static let SMTP_PORT = 587
     static let BUFF_CAP = 4096
@@ -112,62 +131,68 @@ class SMTPConnection: NSObject, StreamDelegate {
         inputStream?.open()
         outputStream?.open()
         
-//        sleep(5)
-//        if let ist = inputStream {
-//            let reply = readBytes(stream: ist)
-//            print("Reply is: \(String(describing: reply))")
-//        } else {
-//            print("Error reading input stream")
-//        }
-//
-//        self.writeBytesOfCommand(withString: "HELO " + "localhost", withExpectedResponse: 250)
-//        while CFReadStreamGetStatus(inputStream) != .open { print("SPINNING") }
-//        tryReadThing()
     }
     
-    func
+    func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
+        switch eventCode {
+        case .hasBytesAvailable:
+            print("Message received, bytes available, can read...")
+            if let ist = inputStream {
+                
+                //Second to execute
+                if !smtp250HELO && smtp220Ready {
+                    let reply = readBytes(stream: ist); print("Reply 2 is: \(String(describing: reply))")
+                    if parseReply(reply ?? "") == 250 {
+                        self.smtp250HELO = true
+                    }
+                }
+                
+                //First to execute
+                if !smtp220Ready {
+                    let reply = readBytes(stream: ist); print("Reply 1 is: \(String(describing: reply))")
+                    if parseReply(reply ?? "") == 220 {
+                        self.smtp220Ready = true
+                        self.writeBytesOfCommand(withString: "HELO " + "127.0.0.1\r\n")
+                    }
+                }
+                
+            } else {
+                print("Error reading input stream")
+            }
+        case .hasSpaceAvailable:
+            print("Message received, space available, can write...")
+        case .errorOccurred:
+            print("Some error occurred in stream...")
+        default:
+            print("Some other stream event occurred...")
+        }
+    }
     
-//    func tryReadThing() {
-//        if let ist = inputStream {
-//            let reply = readBytes(stream: ist)
-//            print("Reply is: \(String(describing: reply))")
-//        } else {
-//            print("Error reading input stream")
-//        }
-//    }
-    
-    private func writeBytesOfCommand(withString: String, withExpectedResponse: Int) {
+    //Send SMTP command and return bool indicating whether the expected response was received
+    private func writeBytesOfCommand(withString: String) {
         let d = withString.data(using: .utf8)
         guard let data = d else {
             print("Error making data in writeBytesOfCommand()")
             return
         }
         data.withUnsafeBytes {
-            print("Withunsafebytes")
             guard let pointer = $0.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
                 print("Error writing data!")
                 return
             }
-            print(pointer.pointee)
-            print(data.count)
             if let os = outputStream {
-            if os.hasSpaceAvailable {
-                print("Space available to write!")
-                outputStream?.write(pointer, maxLength: data.count)
-                print("Tried to write with string: \(withString)")
-            } else { print("No space to write!") }
+                if os.hasSpaceAvailable {
+                    let result = outputStream?.write(pointer, maxLength: data.count)
+                    print("Tried to write with string: \(withString), got result: \(String(describing: result))")
+                } else { print("No space to write!") }
             }
         }
-        if let inS = inputStream {
-            let reply = self.readBytes(stream: inS)
-            print("Reply from write attempt is: \(reply)")
-        }
+        return
     }
     
     private func readBytes(stream: InputStream) -> String? {
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: SMTPConnection.BUFF_CAP)
         while stream.hasBytesAvailable {
-            print("Bytes are available to read!")
             let numBytesRead = stream.read(buffer, maxLength: SMTPConnection.BUFF_CAP)
             if numBytesRead < 0, let error = stream.streamError {
                 print(error)
@@ -181,18 +206,18 @@ class SMTPConnection: NSObject, StreamDelegate {
     }
     
     private func processBufferToString(_ buffer: UnsafeMutablePointer<UInt8>, len: Int) -> String? {
-        return printr(String(bytesNoCopy: buffer, length: len, encoding: .utf8, freeWhenDone: true), "PROCESSED IS: ")
+        return String(bytesNoCopy: buffer, length: len, encoding: .utf8, freeWhenDone: true)
     }
     
     //Get smtp response code from reply
     private func parseReply(_ reply: String) -> Int? {
-        return Int(reply.split(" ")[0])
+        let replySplit = reply.split(" ")
+        return replySplit.isEmpty ? nil : Int(replySplit[0])
     }
     
 }
 
 func urlToIP(_ url: URL?) -> String? {
-    print(url?.absoluteString)
     guard let url = url else {
         print("Error w/ URL object")
         return nil

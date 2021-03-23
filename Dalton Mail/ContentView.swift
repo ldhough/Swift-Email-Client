@@ -32,7 +32,7 @@ struct ContentView: View {
                 Text("PRESS ME TO TEST")
             }.padding()
             Button(action: {
-                smtpC!.tryReadThing()
+//                smtpC!.tryReadThing()
             }) {
                 Text("PRESS ME TO TEST MORE")
             }
