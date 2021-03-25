@@ -327,36 +327,3 @@ func printr<T>(_ thing: T, _ additionalInfo: String = "") -> T {
     print(additionalInfo + "\(thing)")
     return thing
 }
-
-extension String {
-    
-    func countOf(char: Character) -> Int {
-        var count = 0
-        for c in self {
-            count = c == char ? count + 1 : count
-        }
-        return count
-    }
-    
-    func split(_ on: Character) -> [String] {
-        var strings:[String] = []
-        var newStr = ""
-        loop: for char in self {
-            if char == on {
-                if newStr == "" {
-                    continue loop
-                } else {
-                    strings.append(newStr)
-                    newStr = ""
-                }
-            } else {
-                newStr += String(char)
-            }
-        }
-        if newStr != "" {
-            strings.append(newStr)
-        }
-        return strings
-    }
-    
-}

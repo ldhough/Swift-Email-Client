@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,7 +11,10 @@
 		48461DD32602740B00265C14 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48461DD22602740B00265C14 /* ContentView.swift */; };
 		48461DD52602740C00265C14 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 48461DD42602740C00265C14 /* Assets.xcassets */; };
 		48461DD82602740C00265C14 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 48461DD72602740C00265C14 /* Preview Assets.xcassets */; };
+		485C5839260CEDEC00246002 /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 485C5838260CEDEC00246002 /* MailView.swift */; };
 		4870410D260841F5000AB4ED /* SMTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4870410C260841F5000AB4ED /* SMTP.swift */; };
+		48771E33260BB0270099E30F /* SwiftSMTP in Frameworks */ = {isa = PBXBuildFile; productRef = 48771E32260BB0270099E30F /* SwiftSMTP */; };
+		48771E36260BB2540099E30F /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48771E35260BB2540099E30F /* LoginView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,7 +25,9 @@
 		48461DD72602740C00265C14 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		48461DD92602740C00265C14 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		48461DDA2602740C00265C14 /* Dalton_Mail.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dalton_Mail.entitlements; sourceTree = "<group>"; };
+		485C5838260CEDEC00246002 /* MailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailView.swift; sourceTree = "<group>"; };
 		4870410C260841F5000AB4ED /* SMTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMTP.swift; sourceTree = "<group>"; };
+		48771E35260BB2540099E30F /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -30,6 +35,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				48771E33260BB0270099E30F /* SwiftSMTP in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,8 +62,10 @@
 			isa = PBXGroup;
 			children = (
 				48461DD02602740B00265C14 /* Dalton_MailApp.swift */,
-				48461DD22602740B00265C14 /* ContentView.swift */,
+				48771E35260BB2540099E30F /* LoginView.swift */,
+				485C5838260CEDEC00246002 /* MailView.swift */,
 				4870410C260841F5000AB4ED /* SMTP.swift */,
+				48461DD22602740B00265C14 /* ContentView.swift */,
 				48461DD42602740C00265C14 /* Assets.xcassets */,
 				48461DD92602740C00265C14 /* Info.plist */,
 				48461DDA2602740C00265C14 /* Dalton_Mail.entitlements */,
@@ -90,6 +98,9 @@
 			dependencies = (
 			);
 			name = "Dalton Mail";
+			packageProductDependencies = (
+				48771E32260BB0270099E30F /* SwiftSMTP */,
+			);
 			productName = "Dalton Mail";
 			productReference = 48461DCD2602740B00265C14 /* Dalton Mail.app */;
 			productType = "com.apple.product-type.application";
@@ -117,6 +128,9 @@
 				Base,
 			);
 			mainGroup = 48461DC42602740B00265C14;
+			packageReferences = (
+				48771E31260BB0270099E30F /* XCRemoteSwiftPackageReference "Swift-SMTP" */,
+			);
 			productRefGroup = 48461DCE2602740B00265C14 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -145,7 +159,9 @@
 			files = (
 				4870410D260841F5000AB4ED /* SMTP.swift in Sources */,
 				48461DD32602740B00265C14 /* ContentView.swift in Sources */,
+				48771E36260BB2540099E30F /* LoginView.swift in Sources */,
 				48461DD12602740B00265C14 /* Dalton_MailApp.swift in Sources */,
+				485C5839260CEDEC00246002 /* MailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -337,6 +353,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		48771E31260BB0270099E30F /* XCRemoteSwiftPackageReference "Swift-SMTP" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Kitura/Swift-SMTP";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.200;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		48771E32260BB0270099E30F /* SwiftSMTP */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48771E31260BB0270099E30F /* XCRemoteSwiftPackageReference "Swift-SMTP" */;
+			productName = SwiftSMTP;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 48461DC52602740B00265C14 /* Project object */;
 }

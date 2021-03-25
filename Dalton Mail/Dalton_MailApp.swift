@@ -6,18 +6,28 @@
 //
 
 import SwiftUI
+import SwiftSMTP
 
 @main
 struct Dalton_MailApp: App {
     
+    @State var loginSucceeded = false
+    let smtpModel:SMTPModel
+    
     init() {
         print("App initialized!")
-        setenv("CFNETWORK_DIAGNOSTICS", "3", 1)
+        smtpModel = SMTPModel()
     }
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group {
+                if !loginSucceeded {
+                    LoginView(smtpModel: smtpModel, loginSucceeded: $loginSucceeded)
+                } else {
+                    MailView(smtpModel: smtpModel)
+                }
+            }.frame(width: 400, height: 600, alignment: .center)
         }
     }
 }
