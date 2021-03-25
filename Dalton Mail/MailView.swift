@@ -64,6 +64,11 @@ struct MailView: View {
                                 isError = false
                                 alertMsg = "Email sent!"
                                 showAlert = true
+                                attachments = []
+                                to = ""
+                                cc = ""
+                                emailSubject = ""
+                                emailBody = ""
                             }
                         }
                     }) {
