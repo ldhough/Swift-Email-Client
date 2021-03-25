@@ -135,15 +135,20 @@ struct ImageDragDrop: View {
             .onDrop(of: ["public.file-url"], isTargeted: $dragOver) { providers -> Bool in
                 providers.first?.loadDataRepresentation(forTypeIdentifier: "public.file-url", completionHandler: { (data, error) in
                     if let data = data, let path = NSString(data: data, encoding: 4), let url = URL(string: path as String) {
+                        let image = NSImage(contentsOf: url)
+                        
+                        let d = image?.tiffRepresentation
+                        let png = NSBitmapImageRep(data: d!)?.representation(using: .png, properties: [:])
+                        
                         let dataAttachment = Attachment(
-                            data: data,
+                            data: png!,
                             mime: "application/image",
                             name: path as String + ".png",
                             // send as a standalone attachment
                             inline: false
                         )
                         attachments.append(dataAttachment)
-                        let image = NSImage(contentsOf: url)
+                        
                         DispatchQueue.main.async {
                             self.image = image
                         }
